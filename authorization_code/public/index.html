@@ -1,0 +1,167 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Example of the Authorization Code flow with Spotify</title>
+    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css">
+    <style type="text/css">
+      #login, #loggedin {
+        display: none;
+      }
+      .text-overflow {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        width: 500px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <div id="login">
+        <h1>...</h1>
+        <a href="/login" class="btn btn-primary">le click</a>
+      </div>
+      <div id="loggedin">
+        <div id="user-profile">
+        </div>
+        <div id="oauth">
+        </div>
+        <button class="btn btn-default" id="obtain-new-token">Obtain new token using the refresh token</button>
+        <button class="btn btn-default" id="obtain-track-info">Get current track info</button>
+        <button class="btn btn-default" id="stop-current-track">Stop current track</button>
+        <button class="btn btn-default" id="resume-current-track">Resume current track</button>
+        <button class="btn btn-default" id="get-users-playlists">Get users Playlists</button>
+        <button class="btn btn-default" id="get-current-time">Get Current time</button>
+        <button class="btn btn-default" id="skip-by-x-milliseconds">Forward track by 1 sec</button>
+        <button class="btn btn-default" id="get-user-devices">Get user devices</button>
+        <button class="btn btn-default" id="master-button">Master Button</button>
+        <button class="btn btn-default" id="list-size">Firebase list size</button>
+        <button class="btn btn-default" id="create-playlist">Create Playlist</button>
+        <button class="btn btn-default" id="start_playing_default_playlist">StartPlayinDefaultPlaylist</button>
+      </div>
+    </div>
+
+    <script id="user-profile-template" type="text/x-handlebars-template">
+      <h1>Logged in as {{display_name}}</h1>
+      <div class="media">
+        <div class="pull-left">
+          <img class="media-object" width="150" src="{{images.0.url}}" />
+        </div>
+        <div class="media-body">
+          <dl class="dl-horizontal">
+            <dt>Display name</dt><dd class="clearfix">{{display_name}}</dd>
+            <dt>Id</dt><dd>{{id}}</dd>
+            <dt>Email</dt><dd>{{email}}</dd>
+            <dt>Spotify URI</dt><dd><a href="{{external_urls.spotify}}">{{external_urls.spotify}}</a></dd>
+            <dt>Link</dt><dd><a href="{{href}}">{{href}}</a></dd>
+            <dt>Profile Image</dt><dd class="clearfix"><a href="{{images.0.url}}">{{images.0.url}}</a></dd>
+            <dt>Country</dt><dd>{{country}}</dd>
+          </dl>
+        </div>
+      </div>
+    </script>
+
+    <script id="oauth-template" type="text/x-handlebars-template">
+      <h2>oAuth info</h2>
+      <dl class="dl-horizontal">
+        <dt>Access token</dt><dd class="text-overflow">{{access_token}}</dd>
+        <dt>Refresh token</dt><dd class="text-overflow">{{refresh_token}}></dd>
+      </dl>
+    </script>
+
+    <script src="//cdnjs.cloudflare.com/ajax/libs/handlebars.js/2.0.0-alpha.1/handlebars.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
+
+    <script src="https://www.gstatic.com/firebasejs/4.4.0/firebase.js"></script>
+
+    <script type="text/javascript" src="modifiers.js"></script>
+    <script type="text/javascript" src="mainScript.js"></script>
+    <script type="text/javascript" src="initialize_DB.js"></script>
+
+
+    </script>
+  </body>
+</html>
+
+<!--
+
+                                                                      Log
+
+-->
+
+<!-- 
+One solution is to create overlay thingymajig that acts as webAPI socket/adapter we request playback state and so on. Thing is, we sort of need to force us access to the Mother app in orther for uss to work;
+
+Solution two is to get to create a separate app that reinvents the wheel in the way that we cant even Make the App public cause of law violations but it can be made as an implementation to spotify Mother app!
+
+Yeah, solution one is the way to go!
+ -->
+
+<!--
+Hello again,
+What i need is a Controll point for my operation
+Essentially a server (aka. Commander/Genral) that gives out orders for his mates/soldiers (devices in our case (drama much!));
+
+-->
+
+
+<!-- 
+I tell all devices to play something now
+info goes to DB/server
+it tells all devices including mine when and what to play at that specific time
+function requestTrackPLaybackAlldevices (whenToPlayTIMSTAMP, trackID, atWhatPositionINtrackToStart)
+{
+  me to server -> All query parameters ->
+  server -> i recieved your request -> I shall play at requested time
+  server -> telling all connected devices to play at TimeStamp_X
+  All devices send back info if the succeded in playback of the requested track
+  if not retry but add passed time!
+}
+-->
+
+<!--
+Do not:
+- move api access keys of any kind wether it is a Temporiar AccessToken or Refresh token
+- give access to make users keys visible 
+-->
+
+<!-- 
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////PIECE OF RESISTANCE///////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+-->
+            <!--
+            - Spotify returns my timestamp when i request playback of given track (possible issue!)
+            Issues:
+              - What happens when i stop playback, and resume it later?
+              One of two things:
+                - timestamp is time when i started playng it first is still that same,
+                  meaning i have point of reference to when i started. 
+
+                  Time Start = X,  Constant!
+                  Time Paused = Y, 
+                  Time Resume = Z,
+                  Time Passed_in_track = A,
+                  Time Passed_general = B
+
+                  x - Y = A (Passed time)
+
+                  X + A = Z (Resume Time)
+
+            IF I WERE TO SAY I WANT TO PLAY TRACK SIUMULTANIOUSLY AT TBOTH DEVICES I NEED
+            FOLLOWING TO BE TRUE
+
+
+            DEVICE ONE
+                  START = X
+                  PASSED_TME_IN_TRACK = 0 (CURRENT_TIME) 
+
+            ONLY OF ONE DEVICE IS BEHIND WHICH IS MORE THAN LIKELY TO HAPPEN
+
+            DEVICE TWO
+                  Y = 50 MILLISECONDS
+                  START = X + Y (AS IN PLAYBACK STARTED 50 MILLISECONDS LATER)
+                  PASSED_TIME_IN_TRACK = CURRENT_TIME + Y
+            -->
