@@ -17,7 +17,7 @@ var config = {
       var storage = firebase.storage();
       var database = firebase.database();
 
-      var storageRef = firebase.storage().ref();
+      var publicPlaylist = firebase.storage().ref('public_playlist/');
       var userChange = firebase.database().ref('user_track_info/gameovercharlie/');
 
       var globul_DB = 0;
@@ -35,6 +35,8 @@ var config = {
           latestChildPlayback("playlist:56L59C0rOC86SrW2ZIgO8C", 
           "0", globul_DB);
       });*/
+
+      storage
 
       // userChange.limitToFirst(1).on('child_added', function(snapshot, previousChild_AKA_Data) {
       //     console.log("this is first track in playlist: " + snapshot.key);

@@ -100,7 +100,7 @@ function addToPLaylistQue(track_id){
 	var globulPlayingBoolean = false;
 	var globulActiveDevice = 0;
 	var globulUserId = "";
-    var globulPlaylist = "";
+    var globulPlaylistExists;
         //setInterval(updateToken, 3500000);
         // stop music juan minte after update tóken has been fetched!
 
@@ -255,15 +255,28 @@ function addToPLaylistQue(track_id){
         	});
         }
 
-        function getListItemsInFirebase(user_name) {
+        function getListItemsInFirebase(user_name, directory) {
         	$.ajax({
-        		url: 'https://yemhm-431d0.firebaseio.com/user_track_info.json',
+        		url: 'https://yemhm-431d0.firebaseio.com/' + directory,
         		type: 'GET',
         		success: function(data, textStatus, xhr)
         		{
-        			var listSize = Object.keys(data[user_name]).length;
-        			console.log("getListItemsInFirebase success: " + xhr.status);
-        			console.log("items in list: " + listSize);
+                    try{
+                        var listSizeUser = Object.keys(data[user_name]).length;
+                        var listSizePlaylist = Object.keys(data).length;
+            			console.log("getListItemsInFirebase success: " + xhr.status);
+                    }
+                    catch (err) {
+                        if (listSizeUser === undefined)
+                        {
+                            console.log("second thing" + listSizePlaylist);
+
+                        }
+                        else if(listSizeUser !== undefined)
+                        {
+                            console.log("items in list: " + listSizeUser);
+                        }
+                    }
         		}, error: function(xhr, textStatus)
         		{
         			console.log(xhr.status);
@@ -333,20 +346,24 @@ function addToPLaylistQue(track_id){
             }
         });
       }
-        //setTimeout(function() {MasterButton();}, 2000);
+        //setInterval(function() {console.log(globulPlaylistExists);}, 1000);
 
         function checkIfPlaylistExists() {
             //firebase.database().ref('public_playlist/').get("value");
             var snapValue = 0;
             firebase.database().ref("public_playlist/").on("value", function(snapshot){
                 snapValue = snapshot.child("playlist").val();
+                snapKey = snapshot.child("playlist").key;
                 var dataSnapshot = snapshot;
                 console.log("snap Value: " + snapValue);
-                console.log(dataSnapshot);
-                globulPlaylist = snapValue;
+                console.log("snap Key: " + snapKey);
+                globulPlaylistExists = snapValue;
             }, function(errorObject){
                 console.log(errorObject);
             });
+            if(globulPlaylistExists !== undefined){
+                console.log(globulPlaylistExists + " is defined");
+            }
         }
 
     	function flexibleButtonFunction(url, reqType, name) {
@@ -387,25 +404,47 @@ function addToPLaylistQue(track_id){
                         default:
                         console.log("default response");
                 };	
-            },
-            error: function(xhr, textStatus)
-            {
-            	console.log("flexibleButtonFunction fail: " + xhr.status);
-            }
-        });
-	}
+                },
+                error: function(xhr, textStatus)
+                {
+                	console.log("flexibleButtonFunction fail: " + xhr.status);
+                }
+            });
+    	}
 
-    function changeButtonText(elementId, newText, oldText, sleepTime) 
-    {
-        $(elementId).html(newText);
-        setTimeout(function() {$(elementId).html(oldText);}, sleepTime);
-    }
+        function changeButtonText(elementId, newText, oldText, sleepTime) 
+        {
+            $(elementId).html(newText);
+            setTimeout(function() {$(elementId).html(oldText);}, sleepTime);
+        }
 
         function createPlaylistButton(url, reqType, name, tempData){
-            console.log("checkIfPlaylistExists value: " + checkIfPlaylistExists());
-            console.log("globulPlaylist" + globulPlaylist);
-            if( checkIfPlaylistExists() != "public playlist"){  
-                $.ajax({
+            console.log("globul in diffrent function firebase call: " + globulPlaylistExists);
+            checkIfPlaylistExists();
+                if(globulPlaylistExists == "public playlist"){
+                    console.log("playlist Exists");
+                }
+                else if(globulPlaylistExists === undefined){
+                    setTimeout(function(){
+                        if(globulPlaylistExists != "public playlist"){
+                            console.log("value after timeout" + globulPlaylistExists);
+                            executeCreatePlaylistFunction(url, reqType, name, tempData);
+                        }
+                        else if(globulPlaylistExists == "public playlist"){
+                            console.log("playlist Exists!");
+                        }
+                    },500);
+                    console.log("value was undefined!");
+                    //executeCreatePlaylistFunction(url, reqType, name, tempData);
+                }
+                else {
+                    console.log("default response!");
+                }
+        }
+
+        function executeCreatePlaylistFunction(url, reqType, name, tempData) 
+        {
+            $.ajax({
                     url: 'https://api.spotify.com' + url,
                     type: reqType,
                     headers: {
@@ -424,10 +463,6 @@ function addToPLaylistQue(track_id){
                         console.log("createButtonFunction fail: " + xhr.status);
                     }
                 });
-            }
-            else{
-               console.log("playlist exists already");
-            }
         }
 
         	var userProfileSource = document.getElementById('user-profile-template').innerHTML,
@@ -505,7 +540,8 @@ function addToPLaylistQue(track_id){
     	MasterButton();}, false);
     //-------------------------------------------------------------------
     document.getElementById('list-size').addEventListener('click',
-    	function() {getListItemsInFirebase("gameovercharlie");}, false);
+    	function() {getListItemsInFirebase("", "user_track_info.json");
+                    getListItemsInFirebase("","public_tracks");}, false);
     //--------------------------------------------------------
     document.getElementById('create-playlist').addEventListener('click',
     	function() {
