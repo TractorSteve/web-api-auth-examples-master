@@ -18,7 +18,7 @@ function latestChildPlayback(sourceType_id, position_id, globul_token)
 				/*Default playlist is ==> public playlist ==> ID = 56L59C0rOC86SrW2ZIgO8C */
 
 				var generalData = '{"context_uri": "spotify:' + sourceType_id + '"}';
-                var maybeWorkingThing = '{"context_uri": "spotify:user:gameovercharlie:playlist:7dCTiomKeK4ooOiulUjj2Y", "offset": {"position":"0"}}';
+                var maybeWorkingThing = '{"context_uri": "spotify:user:gameovercharlie:playlist:5Oxck3HUmo1meboyBTSqQp", "offset": {"position":"0"}}';
 				var playlistData = '{"context_uri": "spotify:playlist:' + sourceType_id + '","offset": {"position":"' + position_id + '"}}';
 				var alternativeTempData = '{"uris": ["spotify:track:4iV5W9uYEdYUVa79Axb7Rh", "spotify:track:1301WleyT98MSxVHPZCA6M"]}';
 				/*
@@ -41,11 +41,11 @@ function latestChildPlayback(sourceType_id, position_id, globul_token)
         			headers: {"Authorization": "Bearer " + globul_token},
         			data: maybeWorkingThing,
 					dataType: 'application/json',
-        			success: function(data, textStatus, xhr)
+        			success: function(data)
         			{
-        				console.log("track id from DB: " + data.track_id);
+        				changeButtonText("");
         			},
-        			error: function(xhr, textStatus)
+        			error: function(xhr)
         			{
         				console.log(xhr.status);
         			}
@@ -90,9 +90,7 @@ function addPlaylistNameToDB(playlist_add_name) {
 }
 
 function addToPLaylistQue(track_id){
-    firebase.database().ref('public_tracks/').set({
-        "track_name": track_id
-    })
+    firebase.database().ref('public_tracks/').push(track_id);
 }
 //------------------------------------
 	var globulToken = 0;
@@ -222,73 +220,59 @@ function addToPLaylistQue(track_id){
         	});
         }
 
-        function skipByXSeconds () {
-        	$.ajax({
-        		url: 'https://api.spotify.com' + '/v1/me/player',
-        		type: 'GET',
-        		headers: {
-        			'Authorization' : 'Bearer ' + globulToken
-        		}, success: function(data, textStatus, xhr){
-        			console.log(xhr.status);
-        			var current_progress = data.progress_ms + 30000;
-        			globulPlayingBoolean = data.is_playing;
-        			$.ajax({
-        				url: 'https://api.spotify.com/v1/me/player/seek?position_ms=25000',
-        				type: 'PUT',
-        				headers: {
-        					'Authorization' : 'Bearer ' + globulToken
-        				},
-        				success: function(data, textStatus, xhr)
-        				{
-        					console.log(xhr.status);
-        				},
-        				error: function(xhr, textStatus)
-        				{
-        					console.log(xhr.status);
-        				}
-        			});
-        		},
-        		error: function(xhr, textStatus)
-        		{
-        			console.log(xhr.status);
-        		}
-        	});
-        }
 
-        function getListItemsInFirebase(user_name, directory) {
+
+        function getUserItemsInFirebase(user_name) {
         	$.ajax({
-        		url: 'https://yemhm-431d0.firebaseio.com/' + directory,
+        		url: 'https://yemhm-431d0.firebaseio.com/user_track_info.json',
         		type: 'GET',
         		success: function(data, textStatus, xhr)
         		{
-                    try{
-                        var listSizeUser = Object.keys(data[user_name]).length;
-                        var listSizePlaylist = Object.keys(data).length;
-            			console.log("getListItemsInFirebase success: " + xhr.status);
-                    }
-                    catch (err) {
-                        if (listSizeUser === undefined)
-                        {
-                            console.log("second thing" + listSizePlaylist);
-
-                        }
-                        else if(listSizeUser !== undefined)
-                        {
-                            console.log("items in list: " + listSizeUser);
-                        }
-                    }
+                    var listSizeUser = Object.keys(data[user_name]).length;
+                    console.log("User tracks: " + listSizeUser);
+        			console.log("getListItemsInFirebase success: " + xhr.status);
         		}, error: function(xhr, textStatus)
         		{
         			console.log(xhr.status);
         		}
         	});
         }
-            //Check how long it would take to Reqest and retrieve some basic data!
-            //1: my device
-            //2: db
-            //3: back to my device
+        function getCurrentlyPlaying() {
+            $.ajax({
+                url: 'https://api.spotify.com/v1/me/player/currently-playing',
+                type: 'GET',
+                headers: { 'Authorization' : 'Bearer ' + globulToken},
+                success: function(data) {
+                    console.log("this is getCurrentlyPlaying() ");
+                    return data.item.id;
+                },
+                error: function(xhr, textStatus){
+                    console.log("error code: " + xhr.status);
+                }
+            });
+        }
+        function getPublicPlaylist() {
+            $.ajax({
+                url: 'https://yemhm-431d0.firebaseio.com/public_tracks.json',
+                type: 'GET',
+                success: function(data, textStatus, xhr)
+                {
+                    var listSizePlaylist = Object.keys(data).length;
+                    console.log("Playlist: " + listSizePlaylist);
+                    console.log("getListItemsInFirebase success: " + xhr.status);
+                }, error: function(xhr, textStatus)
+                {
+                    console.log(xhr.status);
+                }
+            });
+        }
+        function addCurrentToPlaylist(){
+            var currentlyPlayingTrackId = getCurrentlyPlaying();
+            console.log(currentlyPlayingTrackId);
+            addToPLaylistQue(currentlyPlayingTrackId);
+        }
 
-        function MasterButton() {
+        function submitToDataBase() {
           // writeTrackInformation(timestampTranslation(getCurrentTimeStamp()));
           //writeTrackInformation(user_id,user_name,track_progress,track_id,my_device_time_stamp, track_popularity, track_uri)
           $.ajax({
@@ -381,8 +365,7 @@ function addToPLaylistQue(track_id){
     					console.log("track stopped");
     					break;
     					case 'obtain-track-info':
-    					$("#obtain-track-info").html("" + data.item.name);
-                        console.log(data.item.name);
+    					changeButtonText("#obtain-track-info", data.item.name, "Current track info", 3000);
     					break;
     					case 'resume-current-track':
     					console.log("track resumed");
@@ -500,6 +483,7 @@ function addToPLaylistQue(track_id){
             		globulUserId = response.id;
 
             		$('#login').hide();
+                    // should be $('#loggedin').show();
             		$('#loggedin').show();
             	}
             });
@@ -536,12 +520,15 @@ function addToPLaylistQue(track_id){
     	console.log(timeSinceTokenUpdate(getCurrentTimeStamp(),globulTokenAge));
     	console.log(timestampTranslation(timeSinceTokenUpdate(getCurrentTimeStamp(),globulTokenAge)));}, false);
     //--------------------------------------------------------
-    document.getElementById('master-button').addEventListener('click', function() {
-    	MasterButton();}, false);
+    document.getElementById('submit-to-database').addEventListener('click', function() {
+    	submitToDataBase();}, false);
     //-------------------------------------------------------------------
     document.getElementById('list-size').addEventListener('click',
-    	function() {getListItemsInFirebase("", "user_track_info.json");
-                    getListItemsInFirebase("","public_tracks");}, false);
+    	function() {
+            getPublicPlaylist();
+            //console.log(getCurrentlyPlaying());
+            addCurrentToPlaylist();
+ }, false);
     //--------------------------------------------------------
     document.getElementById('create-playlist').addEventListener('click',
     	function() {
@@ -557,6 +544,9 @@ function addToPLaylistQue(track_id){
             latestChildPlayback(defaultPlaylist, '0' , globulToken);
         },false);
     //--------------------------------------------------------------
+    document.getElementById('add_to_public_playlist').addEventListener('click', function() {
+        addCurrentToPlaylist();
+    },false);
           // add age paremeter to accesstoken that is stored localy
           // to prement wasting reqests per second
 
@@ -575,3 +565,15 @@ function addToPLaylistQue(track_id){
 		DUN!
 
   */
+
+  /*
+    1: listen spotfiy
+    2: show realtime "currently playing in HTML" in localhost site
+    3: Text change as soon you change track in spotify nativ app/program
+    4: An efficient listener would be perfect for this task
+  */
+
+  /*
+    nice example
+    https://codepen.io/dsheiko/pen/gaeqRO?editors=0010
+    */
