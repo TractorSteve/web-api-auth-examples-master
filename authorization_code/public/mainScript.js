@@ -1,59 +1,42 @@
-//console.log("This external ource is twerking!");
 
-function makeUserSubStorage (user_name) {
-	firebase.database().ref('user_track_info/' + user_name + '/').set({
-		random: "Placeholder"
 
-      //probably useless lets see!
-  });
-}
+function startPlayingPlaylist (position_id, globalToken) {
+    var argumentsToStartPlaylist = 'https://yemhm-431d0.firebaseio.com/public_playlist.json';
+    $.ajax({
+        url: argumentsToStartPlaylist,
+        type: 'GET',
+        success: function(data)
+        {
+            playlistPlayback(position_id, globalToken, data.uri);
+        },
+        error: function(xhr)
+        {
+            console.log(xhr.status);
+        }
+    }); 
+} 
 
-function latestChildPlayback(sourceType_id, position_id, globul_token)
-			{
-				// when a new child is added. Play previous track 
-				// possible issue is:
-				// 1: wrong request address
-				// 2: wrong format
-
-				/*Default playlist is ==> public playlist ==> ID = 56L59C0rOC86SrW2ZIgO8C */
-
-				var generalData = '{"context_uri": "spotify:' + sourceType_id + '"}';
-                var maybeWorkingThing = '{"context_uri": "spotify:user:gameovercharlie:playlist:5Oxck3HUmo1meboyBTSqQp", "offset": {"position":"0"}}';
-				var playlistData = '{"context_uri": "spotify:playlist:' + sourceType_id + '","offset": {"position":"' + position_id + '"}}';
-				var alternativeTempData = '{"uris": ["spotify:track:4iV5W9uYEdYUVa79Axb7Rh", "spotify:track:1301WleyT98MSxVHPZCA6M"]}';
-				/*
-				 var orderJson = {
-			        AdditionalInstructions: $("span:first").text(),
-			        Customer: {
-			            FirstName: $("#firstName").val(),
-			            LastName: $("#lastName").val()
-			        },
-			        OrderedProduct: {
-			            Id: $("#productList").val(),
-			            Quantity: $("#quantity").val()
-			        }
-			    };
-*/
+function playlistPlayback (position_id, global_token, playlistUri) {
+                var attributesOfPlaylist = '{"context_uri": "'+ playlistUri + '", "offset": {"position":"' + position_id + '"}}';
 
 				$.ajax({
         			url: 'https://api.spotify.com/v1/me/player/play',
         			type: 'PUT',
-        			headers: {"Authorization": "Bearer " + globul_token},
-        			data: maybeWorkingThing,
+        			headers: {"Authorization": "Bearer " + global_token},
+        			data: attributesOfPlaylist,
 					dataType: 'application/json',
         			success: function(data)
         			{
-        				changeButtonText("");
+        				console.log("playlist is active")
         			},
         			error: function(xhr)
         			{
         				console.log(xhr.status);
         			}
         		});
-			}
+}
 
-//quick and dirty solution
-function writeTrackInformation(user_id,user_name,track_progress,track_id,my_device_time_stamp, track_popularity, track_uri, track_name, track_number, album_name, album_type, album_id,
+function writeTrackInformation (user_id,user_name,track_progress,track_id,my_device_time_stamp, track_popularity, track_uri, track_name, track_number, album_name, album_type, album_id,
 	artist_name, artist_id, spotify_timestamp) {
 	console.log("function my stamp: " + getCurrentTimeStamp());
 
@@ -83,89 +66,54 @@ function writeTrackInformation(user_id,user_name,track_progress,track_id,my_devi
 	console.log("function Spotify stamp: " + spotify_timestamp);
 }
 
-function addPlaylistNameToDB(playlist_add_name) {
+function addPlaylistNameToDB (playlist_add_name, uri) {
 	firebase.database().ref('public_playlist/').set({
-		"playlist": playlist_add_name
+		"playlist": playlist_add_name,
+        "uri": uri
 	});
 }
 
-function addToPLaylistQue(track_id){
-    firebase.database().ref('public_tracks/').push(track_id);
-}
+function addToPLaylistQue (track_id) {firebase.database().ref('public_tracks/').push(track_id);}
+
+//Global variables
 //------------------------------------
-	var globulToken = 0;
-	var globulTokenAge = 0;
-	var globulPlayingBoolean = false;
-	var globulActiveDevice = 0;
-	var globulUserId = "";
-    var globulPlaylistExists;
-        //setInterval(updateToken, 3500000);
-        // stop music juan minte after update tóken has been fetched!
+	var globalToken = 0;
+	var globalTokenAge = 0;
+	var globalPlayingBoolean = false;
+	var globalActiveDevice = 0;
+	var globalUserId = "";
+    var globalPlaylistExists;
+    var globalPlaylistURI;
 
-        // function testStorage()
-        // {
-        //   $.ajax({
-        //     url: 'https://yemhm-431d0.firebaseio.com',
-        //     type: 'PUT',
-        //     data: {
-        //       firstThing : "randomText"
-        //     }
-        //   });
-        // }
-        // testStorage();
-
-
-        // function writeSomeData (Variable1,Variable2,Variable3)
-        // {
-        //   firebase.database().ref()
-        // }
-
-        /////////////////////////////////////////////////////////////////////////////////////////////7
-        /* create auto update when diffrence between Date.now() and globulTokenAge is bigger than 3 500 000 ms 
-             since Spotify token is no longer valid after 3 600 000 ms aka. 1 hour so we auto update sooner just in case
-             site does request new access token when we login/ come back on site.
-             */
-
-             function getAccessToGlobal() {
-             	return globulToken;
-             }
-
-             function updateToken () {
-
-             	$.ajax({
-             		url: '/refresh_token',
-             		data: {
-             			'refresh_token': refresh_token
-             		},success: function(data, textStatus, xhr) 
-             		{
-             			console.log("Timestamp from updateToken()" + Date.now());
-             			globulTokenAge = Date.now();
-             			globulToken = data.access_token;
-             			oauthPlaceholder.innerHTML = oauthTemplate({
-             				access_token: access_token,
-             				refresh_token: refresh_token
-             			});
-             			console.log("update token success: " + xhr.status);
-             		},
-             		error: function(xhr, textStatus)
-             		{
-             			console.log("update token fail: " + xhr.status);
-             		}
-             	});
-             }
-
-        /**
-         * Obtains parameters from the hash of the URL
-         * @return Object
-         */
-
-
-         function getUserId (){
+        function updateToken () {
          	$.ajax({
+         		url: '/refresh_token',
+         		data: {
+         			'refresh_token': refresh_token
+         		},success: function(data, textStatus, xhr) 
+         		{
+         			console.log("Timestamp from updateToken()" + Date.now());
+         			globalTokenAge = Date.now();
+         			globalToken = data.access_token;
+         			oauthPlaceholder.innerHTML = oauthTemplate({
+         				access_token: access_token,
+         				refresh_token: refresh_token
+         			});
+         			console.log("update token success: " + xhr.status);
+         		},
+         		error: function(xhr, textStatus)
+         		{
+         			console.log("update token fail: " + xhr.status);
+         		}
+         	});
+        }
+
+        function getUserId () {
+            $.ajax({
          		url: 'https://api.spotify.com/v1/me',
          		type: 'GET',
          		headers: {
-         			'Authorization': 'Bearer ' + globulToken
+         			'Authorization': 'Bearer ' + globalToken
          		},
          		success: function(data, textStatus, xhr)
          		{
@@ -178,26 +126,25 @@ function addToPLaylistQue(track_id){
          			console.log("get user id fail: " + xhr.status);
          		}
          	});
-         }
-
-         //fokin working boiiii!!!
+        }
+         //iz working oh boy!
         function skipInsideTrack () {
         	var startVariable = getCurrentTimeStamp();
         	var stopVariable;
         	$.ajax({
         		url: 'https://api.spotify.com' + '/v1/me/player',
         		type: 'GET',
-        		headers: {'Authorization' : 'Bearer ' + globulToken},
+        		headers: {'Authorization' : 'Bearer ' + globalToken},
         		success: function(data, textStatus, xhr)
         		{
         			var current_progress = data.progress_ms + 1000;
-        			globulPlayingBoolean = data.is_playing;
-        			if(globulPlayingBoolean == true){
+        			globalPlayingBoolean = data.is_playing;
+        			if(globalPlayingBoolean == true){
         				$.ajax({
         					url: 'https://api.spotify.com/v1/me/player/seek' + '?' + $.param({'position_ms' : current_progress}),
         					type: 'PUT',
         					headers: {
-        						'Authorization' : 'Bearer ' + globulToken
+        						'Authorization' : 'Bearer ' + globalToken
         					},
         					success: function(data, textStatus, xhr)
         					{
@@ -220,12 +167,8 @@ function addToPLaylistQue(track_id){
         	});
         }
 
-
-
         function getUserItemsInFirebase(user_name) {
         	$.ajax({
-        		url: 'https://yemhm-431d0.firebaseio.com/user_track_info.json',
-        		type: 'GET',
         		success: function(data, textStatus, xhr)
         		{
                     var listSizeUser = Object.keys(data[user_name]).length;
@@ -237,11 +180,12 @@ function addToPLaylistQue(track_id){
         		}
         	});
         }
+
         function getCurrentlyPlaying() {
             $.ajax({
                 url: 'https://api.spotify.com/v1/me/player/currently-playing',
                 type: 'GET',
-                headers: { 'Authorization' : 'Bearer ' + globulToken},
+                headers: { 'Authorization' : 'Bearer ' + globalToken},
                 success: function(data) {
                     console.log("this is getCurrentlyPlaying() ");
                     return data.item.id;
@@ -251,6 +195,7 @@ function addToPLaylistQue(track_id){
                 }
             });
         }
+
         function getPublicPlaylist() {
             $.ajax({
                 url: 'https://yemhm-431d0.firebaseio.com/public_tracks.json',
@@ -266,6 +211,7 @@ function addToPLaylistQue(track_id){
                 }
             });
         }
+
         function addCurrentToPlaylist(){
             var currentlyPlayingTrackId = getCurrentlyPlaying();
             console.log(currentlyPlayingTrackId);
@@ -278,7 +224,7 @@ function addToPLaylistQue(track_id){
           $.ajax({
           	url: 'https://api.spotify.com' + '/v1/me',
           	type: 'GET',
-          	headers: { 'Authorization' : 'Bearer ' + globulToken},
+          	headers: { 'Authorization' : 'Bearer ' + globalToken},
           	success: function(data, textStatus, xhr) {
           		var user_id = data.id;
           		var user_uri = data.uri;
@@ -289,10 +235,10 @@ function addToPLaylistQue(track_id){
             	$.ajax({
             		url: 'https://api.spotify.com' + '/v1/me/player/currently-playing',
             		type: 'GET',
-            		headers: { 'Authorization' : 'Bearer ' + globulToken},
+            		headers: { 'Authorization' : 'Bearer ' + globalToken},
             		success: function(data) {
-            			var artist_name = data.item.album.artists["0"].name;
-            			var artist_id = data.item.album.artists["0"].id;
+        			var artist_name = data.item.album.artists["0"].name;
+        			var artist_id = data.item.album.artists["0"].id;
 			        //album dets
 			        var album_name = data.item.album.name;
 			        var album_id = data.item.album.id;
@@ -306,7 +252,7 @@ function addToPLaylistQue(track_id){
 			        var track_name = data.item.name;
 			        var track_number = data.item.track_number - 1;
 			        var spotify_timestamp = data.timestamp;
-			        console.log(track_uri + track_id + track_name + track_popularity);
+			        console.log(track_uri + "" + track_id + "" + track_name + "" + track_popularity);
 
 			        writeTrackInformation(
 			        	user_uri,user_id,
@@ -328,9 +274,8 @@ function addToPLaylistQue(track_id){
             error: function(xhr, textStatus) {
             	console.log("account me fail: " + xhr.status);
             }
-        });
-      }
-        //setInterval(function() {console.log(globulPlaylistExists);}, 1000);
+            });
+        }
 
         function checkIfPlaylistExists() {
             //firebase.database().ref('public_playlist/').get("value");
@@ -341,12 +286,12 @@ function addToPLaylistQue(track_id){
                 var dataSnapshot = snapshot;
                 console.log("snap Value: " + snapValue);
                 console.log("snap Key: " + snapKey);
-                globulPlaylistExists = snapValue;
+                globalPlaylistExists = snapValue;
             }, function(errorObject){
                 console.log(errorObject);
             });
-            if(globulPlaylistExists !== undefined){
-                console.log(globulPlaylistExists + " is defined");
+            if(globalPlaylistExists !== undefined){
+                console.log(globalPlaylistExists + " is defined");
             }
         }
 
@@ -355,7 +300,7 @@ function addToPLaylistQue(track_id){
     			url: 'https://api.spotify.com' + url,
     			type: reqType,
     			headers: {
-    				'Authorization': 'Bearer ' + globulToken
+    				'Authorization': 'Bearer ' + globalToken
     			},
     			success: function(data, textStatus, xhr)
     			{
@@ -395,48 +340,128 @@ function addToPLaylistQue(track_id){
             });
     	}
 
-        function changeButtonText(elementId, newText, oldText, sleepTime) 
-        {
+        function changeButtonText(elementId, newText, oldText, sleepTime) {
             $(elementId).html(newText);
             setTimeout(function() {$(elementId).html(oldText);}, sleepTime);
         }
+        
+        async function createPlaylist(url, reqType, name, tempData) {
+            try {
+                var argumentsToCreatePlaylist = 'https://yemhm-431d0.firebaseio.com/public_playlist.json';
+                var playlistConfirmation = $.ajax({
+                        url: argumentsToCreatePlaylist,
+                        type: 'GET',
+                        success: function(data, textStatus, xhr) {
+                            console.log("public_playlist success code: " + xhr.status);
+                        },
+                        error: function(xhr) {
+                            console.log("public_playlist fail code: " + xhr.status);
+                        }
+                    }); 
+                let playlistExistence = await playlistConfirmation;
 
-        function createPlaylistButton(url, reqType, name, tempData){
-            console.log("globul in diffrent function firebase call: " + globulPlaylistExists);
-            checkIfPlaylistExists();
-                if(globulPlaylistExists == "public playlist"){
-                    console.log("playlist Exists");
+                console.log(playlistExistence);
+                if (playlistExistence.playlist === "public playlist" || globalPlaylistURI == true) {
+                    console.log("Playlist already exists");
                 }
-                else if(globulPlaylistExists === undefined){
-                    setTimeout(function(){
-                        if(globulPlaylistExists != "public playlist"){
-                            console.log("value after timeout" + globulPlaylistExists);
-                            executeCreatePlaylistFunction(url, reqType, name, tempData);
-                        }
-                        else if(globulPlaylistExists == "public playlist"){
-                            console.log("playlist Exists!");
-                        }
-                    },500);
-                    console.log("value was undefined!");
-                    //executeCreatePlaylistFunction(url, reqType, name, tempData);
+                else if(playlistExistence === null || playlistExistence == null || playlistExistence == "null") {
+                    executeCreatePlaylistFunction(url, reqType, name, tempData);
+                    console.log("else if 372");
                 }
                 else {
-                    console.log("default response!");
+                    executeCreatePlaylistFunction(url, reqType, name, tempData);
+                    globalPlaylistExists = true;
+                    globalPlaylistURI = playlistExistence.uri;
+                    console.log("else 378");
+                    changeButtonText("#create-playlist", "Playlist created else", "Create playlist", 2000);
                 }
+            }
+            catch (err) {
+                if (err instanceof TypeError) {
+                    if(err instanceof ReferenceError){
+                        console.log("do some shit");
+                    }
+                    console.log(err + "387");
+                    executeCreatePlaylistFunction(url, reqType, name, tempData);
+                    globalPlaylistExists = true;
+                    changeButtonText("#create-playlist", "Playlist created else if", "Create playlist", 2000);
+                }
+                else if (err instanceof ReferenceError){
+                    console.log(err + "393");
+                    executeCreatePlaylistFunction(url, reqType, name, tempData);
+                    globalPlaylistExists = true;
+                    changeButtonText("#create-playlist");
+                }
+                else{console.log("some shiet");}
+            }
         }
 
-        function executeCreatePlaylistFunction(url, reqType, name, tempData) 
-        {
+        async function getListOfPlaylists (user_id, limit_val, offset_val) {
+            //v1/users/' + globalUserId + '/playlists', 'GET', 'get-users-playlists'
+            try{
+                var url_get_list_of_playlists = '/v1/users/' + globalUserId + '/playlists';
+                var getPlaylistAjax = $.ajax({
+                    url: 'https://api.spotify.com' + url_get_list_of_playlists + '?' + $.param({'limit' : limit_val, 'offset' : offset_val}),
+                    type: 'GET',
+                    headers: {
+                        'Authorization': 'Bearer ' + globalToken
+                    },
+                    success: function(data, textStatus, xhr)
+                    {
+                        var listOfPlaylists = data.items;
+                        console.log("list returned!");
+                    },
+                    error: function(xhr, textStatus)
+                    {
+                        console.log("error code: " + xhr.status);
+                    }
+                });
+
+                let getAsyncPlaylist = await getPlaylistAjax;
+                var tempPlaylistData = getAsyncPlaylist.items;
+                console.log("tempPlaylistData: ");
+                console.log(tempPlaylistData);
+                return tempPlaylistData;
+            }
+            catch(err) {
+                console.log(err);
+            }
+        }  
+
+        async function getTotalNumberOfPlaylists (user_id) {
+            try{
+                var total_NumberOfPlaylists = 0;
+                for (var i = 0; i < 10; i++){
+                    let request_playlistPackage = await getListOfPlaylists(user_id, 50, (i * 50));
+                    var total_getSize = Object.keys(request_playlistPackage).length;
+                    console.log("show requestNumberX value " + i);
+                    total_NumberOfPlaylists += total_getSize;
+                    console.log(total_getSize + " index I: " + i);
+
+                    if(total_getSize != 50){
+                        console.log("loop stopped!");
+                        console.log("number of playlists: " + total_NumberOfPlaylists);
+                        changeButtonText("#show-all-playlists", total_NumberOfPlaylists, "Show how many playlist i have", 2000);
+                        break;  
+                    }
+                }
+            }
+            catch(err){
+                console.log(err);
+            }
+        }
+
+        function executeCreatePlaylistFunction(url, reqType, name, tempData) {
             $.ajax({
                     url: 'https://api.spotify.com' + url,
                     type: reqType,
                     headers: {
-                        'Authorization': 'Bearer ' + globulToken
+                        'Authorization': 'Bearer ' + globalToken
                     },
                     data: tempData,
                     success: function(data, textStatus, xhr)
                     {
-                        addPlaylistNameToDB(data.name);
+                        addPlaylistNameToDB(data.name, data.uri);
                         console.log("added playlist with name. " + data.name); 
                         console.log("createButtonFunction success: " + xhr.status);  
                         //console.log(checkIfPlaylistExists());
@@ -447,6 +472,10 @@ function addToPLaylistQue(track_id){
                     }
                 });
         }
+
+        function managePLaylist(){};
+        function deleteInPlaylist(){};
+
 
         	var userProfileSource = document.getElementById('user-profile-template').innerHTML,
         	userProfileTemplate = Handlebars.compile(userProfileSource),
@@ -467,7 +496,7 @@ function addToPLaylistQue(track_id){
         	} else {
         		if (access_token) {
             // render oauth info
-            globulToken = access_token;
+            globalToken = access_token;
             oauthPlaceholder.innerHTML = oauthTemplate({
             	access_token: access_token,
             	refresh_token: refresh_token
@@ -480,83 +509,90 @@ function addToPLaylistQue(track_id){
             	},
             	success: function(response) {
             		userProfilePlaceholder.innerHTML = userProfileTemplate(response);
-            		globulUserId = response.id;
+            		globalUserId = response.id;
 
             		$('#login').hide();
                     // should be $('#loggedin').show();
             		$('#loggedin').show();
             	}
             });
-        } else {
-              // render initial screen
-              $('#login').show();
-              $('#loggedin').hide();
-          }
+            } else {
+                  // render initial screen
+                  $('#login').show();
+                  $('#loggedin').hide();
+              }
 
-    document.getElementById('obtain-new-token').addEventListener('click', function () {updateToken();}, false);
+    document.getElementById('obtain-new-token').addEventListener('click', function () {
+        updateToken();
+        functionName('https://yemhm-431d0.firebaseio.com/public_tracks.json', "#obtain-new-token");}, false);
     //-------------------------------------------------------------------
     document.getElementById('obtain-track-info').addEventListener('click', function() {
-    	flexibleButtonFunction('/v1/me/player/currently-playing','GET', 'obtain-track-info', null)}, false);
+    	flexibleButtonFunction('/v1/me/player/currently-playing','GET', 'obtain-track-info'
+            , null)}, false);
     //--------------------------------------------------------------------
     document.getElementById('resume-current-track').addEventListener('click', function() {
-    	flexibleButtonFunction('/v1/me/player/play','PUT', 'resume-current-track', null)}, false);
+    	flexibleButtonFunction('/v1/me/player/play','PUT', 'resume-current-track', null)}, 
+        false);
     //------------------------------------------------------------------------
     document.getElementById('stop-current-track').addEventListener('click', function () {
-    	flexibleButtonFunction('/v1/me/player/pause','PUT', 'stop-current-track', null)}, false);
+    	flexibleButtonFunction('/v1/me/player/pause','PUT', 'stop-current-track', null)}, 
+        false);
     //----------------------------------------------------------------------
     document.getElementById('get-users-playlists').addEventListener('click', function() {
-        flexibleButtonFunction('/v1/users/' + globulUserId + '/playlists', 'GET', 'get-users-playlists', null)},false);
+        flexibleButtonFunction('/v1/users/' + globalUserId + '/playlists', 'GET', 'get-users-playlists', null)},
+        false);
     //-----------------------------------------------------------------------
     document.getElementById('skip-by-x-milliseconds').addEventListener('click',function() {
         skipInsideTrack();
-        changeButtonText("#skip-by-x-milliseconds", "Skipped by 1 sec", "Forward by 1 sec", 1000);
-    }, false);
+        changeButtonText("#skip-by-x-milliseconds", "Skipped by 1 sec", "Forward by 1 sec", 1000);}, 
+        false);
     //--------------------------------------------------------------------------
     document.getElementById('get-user-devices').addEventListener('click', function() {
-    	flexibleButtonFunction('/v1/me/player/devices', 'GET', 'get-user-devices', null)}, false);
+    	flexibleButtonFunction('/v1/me/player/devices', 'GET', 'get-user-devices', null)}, 
+        false);
     //--------------------------------------------------------------------------
     document.getElementById('get-current-time').addEventListener('click', function() {
     	$(this).html(timestampTranslation(getCurrentTimeStamp()));
-    	console.log(timeSinceTokenUpdate(getCurrentTimeStamp(),globulTokenAge));
-    	console.log(timestampTranslation(timeSinceTokenUpdate(getCurrentTimeStamp(),globulTokenAge)));}, false);
+    	console.log(timeSinceTokenUpdate(getCurrentTimeStamp(),globalTokenAge));
+    	console.log(timestampTranslation(timeSinceTokenUpdate(getCurrentTimeStamp(),globalTokenAge)));}, 
+        false);
     //--------------------------------------------------------
     document.getElementById('submit-to-database').addEventListener('click', function() {
-    	submitToDataBase();}, false);
+    	submitToDataBase();}, 
+        false);
     //-------------------------------------------------------------------
     document.getElementById('list-size').addEventListener('click',
     	function() {
             getPublicPlaylist();
             //console.log(getCurrentlyPlaying());
-            addCurrentToPlaylist();
- }, false);
+            addCurrentToPlaylist();}, 
+            false);
     //--------------------------------------------------------
     document.getElementById('create-playlist').addEventListener('click',
     	function() {
     		    var createPlaylistData = '{"description":"public playlist","public": true,"name": "public playlist"}';
-    		    createPlaylistButton('/v1/users/' + globulUserId + '/playlists', 'POST', 'create-playlist', createPlaylistData);
-                changeButtonText("#create-playlist", "Playlist Created!", "Create Playlist", 2000);
-    	}, false);
-    //--------------------------------------------------------------
-           
-    document.getElementById('start_playing_default_playlist').addEventListener('click',
+    		    createPlaylist('/v1/users/' + globalUserId + '/playlists', 'POST', 'create-playlist', createPlaylistData);}, 
+                false);
+    //--------------------------------------------------------------         
+    document.getElementById('start-playing-default-playlist').addEventListener('click',
         function() {
-            var defaultPlaylist = "playlist:56L59C0rOC86SrW2ZIgO8C";
-            latestChildPlayback(defaultPlaylist, '0' , globulToken);
-        },false);
+            startPlayingPlaylist("0", globalToken);}, 
+            false);
     //--------------------------------------------------------------
-    document.getElementById('add_to_public_playlist').addEventListener('click', function() {
-        addCurrentToPlaylist();
-    },false);
-          // add age paremeter to accesstoken that is stored localy
-          // to prement wasting reqests per second
-
-      }
+    document.getElementById('add-to-public-playlist').addEventListener('click', function() {
+        addCurrentToPlaylist();},
+        false);
+    //--------------------------------------------------------------
+    document.getElementById('show-all-playlists').addEventListener('click', function() {
+        getTotalNumberOfPlaylists("gameovercharlie");}, 
+        false);
+    }
 
 
   /*
 	add if error 401 
 
-		updateGlobulToken()
+		updateglobalToken()
 
 		and run method again
 
@@ -577,3 +613,51 @@ function addToPLaylistQue(track_id){
     nice example
     https://codepen.io/dsheiko/pen/gaeqRO?editors=0010
     */
+
+    /*
+    TODO: 
+
+    Gui to chose your own playlists to play :
+        - playlistName (start_position, playlist_uri)
+        - set Repeat: ON (in case play list is shot and loops)
+        - get List of tracks in database in order to make playback easier, that is, when you choose public playlist you can see names of tracks in playlist
+          making selection marginally simpler 
+    Search box to look for track
+        - add track to public playlist
+    Public playlist in my database need to just backup for spotify playlist:
+        - thus if oyu delete entire playlist one can recreate it from backup on your profile
+        - // As soon you add new item to public playlist on Database it will add it to your official playlist on psotify 
+             this is just to prevent spaming reqest from spotify and doing it the other way around... my db first will be better solution
+          \\
+    When track changes
+        - Make changes to Currently playing Playlist
+    currently playing playlist
+        - update value to object that is currently played in spotify
+        - ex.       public_playlist: {
+                        track_id : "some_id",
+                        currently_playing: "true"
+                        }
+        - most important is to make sure only one track have "currently playing" value equal "true",  to avoid minor issues;
+    Rewrite "write track info thingy" 
+        - Pass an array to "write track info thingy" instead of long strong of alone variables, idealy! use JSON format before sending to "write thingy to data base"
+          just to make it look more clean when submiting. 
+    Moving "document.byId..." to Index.html would remove eye clutter even further from the poor developer!
+        - Rip me :/
+        - @Override var Sans = "Jellypants";
+    Finally create automatical "remove" function 
+    - Which will remove last object in list when Array gets bigger than "1000" items, 
+      also use Spotify principle of showing only latest 20 tracks. In order to get 
+      more track you will be forced to request more "sort like you would do on a shoping website",
+      go to "page 3" etc. no the best solution but it will work nicely.
+    
+    DONE: 
+
+    //Async iS love, async is life!//
+
+    Add async/await functionality to "CreatePlaylist" fucntion
+        - Wait for response from myDB to tell if publicPlaylist have been created
+        - Alternative make db.ref(always submit name, and uri), but in a smart way.
+
+
+      */
+    

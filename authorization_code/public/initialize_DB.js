@@ -20,8 +20,7 @@ var config = {
       var publicPlaylist = firebase.database().ref('public_tracks/');
       var userChange = firebase.database().ref('user_track_info/gameovercharlie/');
 
-      var globul_DB = 0;
-      globul_DB = getAccessToGlobal();
+      var globul_DB = globalToken;
       console.log("this i globul_DB: " + globul_DB);
      
 // Command Center
