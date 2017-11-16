@@ -84,6 +84,10 @@ function addToPLaylistQue (track_id) {firebase.database().ref('public_tracks/').
 	var globalUserId = "";
     var globalPlaylistExists;
     var globalPlaylistURI;
+    var globalPlaylistCount = 0;
+
+// Token expires within an hour exactly, we auto update it with 1 hour-ish interval
+    setInterval(function(){updateToken();}, 3550000);
 
         function updateToken () {
          	$.ajax({
@@ -396,58 +400,104 @@ function addToPLaylistQue (track_id) {firebase.database().ref('public_tracks/').
             }
         }
 
-        async function getListOfPlaylists (user_id, limit_val, offset_val) {
-            //v1/users/' + globalUserId + '/playlists', 'GET', 'get-users-playlists'
+        async function getPlaylistLength (user_id) {
             try{
-                var url_get_list_of_playlists = '/v1/users/' + globalUserId + '/playlists';
-                var getPlaylistAjax = $.ajax({
-                    url: 'https://api.spotify.com' + url_get_list_of_playlists + '?' + $.param({'limit' : limit_val, 'offset' : offset_val}),
+                var url_get_list_of_playlists_simple = 'https://api.spotify.com/v1/users/' + globalUserId + '/playlist';
+                // Const is file type that can be written once and used in specific scope
+                const request_getPlaylistLength = await getListOfPlaylists(user_id, "1", "0", "total");
+
+                var value_getPlaylistLength = request_getPlaylistLength;
+                console.log("return value : " + value_getPlaylistLength);
+                return value_getPlaylistLength;
+            }
+            catch(err) {
+                console.log(err);
+            }
+        }
+
+        async function getListOfPlaylists (user_id, limit_val, offset_val, returnType) {
+            try{
+                var url_getListOfPlaylists = '/v1/users/' + globalUserId + '/playlists';
+                // Const is file type that can be written once and used in specific scope
+                const ajax_getListOfPlaylists = await $.ajax({
+                    url: 'https://api.spotify.com' + url_getListOfPlaylists + '?' + $.param({'limit' : limit_val, 'offset' : offset_val}),
                     type: 'GET',
                     headers: {
                         'Authorization': 'Bearer ' + globalToken
                     },
                     success: function(data, textStatus, xhr)
                     {
-                        var listOfPlaylists = data.items;
                         console.log("list returned!");
+                        console.log(data.total);
                     },
                     error: function(xhr, textStatus)
                     {
                         console.log("error code: " + xhr.status);
                     }
                 });
-
-                let getAsyncPlaylist = await getPlaylistAjax;
-                var tempPlaylistData = getAsyncPlaylist.items;
-                console.log("tempPlaylistData: ");
-                console.log(tempPlaylistData);
-                return tempPlaylistData;
+                globalPlaylistCount = ajax_getListOfPlaylists.total;
+                console.log(" Playlist count: " + ajax_getListOfPlaylists.total);
+                var returnValue;
+                switch (returnType) {
+                        case 'items':
+                        returnValue = ajax_getListOfPlaylists.items;
+                        console.log("items returned");
+                        break;
+                        case 'total':
+                        returnValue = ajax_getListOfPlaylists.total;
+                        break;
+                        default :
+                        console.log("default message");
+                        break;
+                    };
+                return returnValue;
             }
             catch(err) {
                 console.log(err);
             }
         }  
 
-        async function getTotalNumberOfPlaylists (user_id) {
-            try{
-                var total_NumberOfPlaylists = 0;
-                for (var i = 0; i < 10; i++){
-                    let request_playlistPackage = await getListOfPlaylists(user_id, 50, (i * 50));
-                    var total_getSize = Object.keys(request_playlistPackage).length;
-                    console.log("show requestNumberX value " + i);
-                    total_NumberOfPlaylists += total_getSize;
-                    console.log(total_getSize + " index I: " + i);
+        // have Mother function that gets playlist request and return array.length with a switch statement or something 
 
-                    if(total_getSize != 50){
+        async function saveAllTracks (user_id) {
+            try{
+
+                const get_playlistList = await getPlaylistLength("gameovercharlie");
+
+                var total_PlaylistData = [];
+                var loop_limit = Math.ceil(get_playlistList/50);
+                for (var i = 0; i < loop_limit; i++){
+                    let request_playlistPackage = await getListOfPlaylists(user_id, 50, (i * 50), 'items');;
+                    var keys_values = Object.keys(request_playlistPackage);
+                    console.log("total_getSize: " + keys_values.length + " index I: " + i);
+                    for (var j = 0; j < keys_values.length; j++){
+                        total_PlaylistData.push(request_playlistPackage[j]);
+                        console.log(total_PlaylistData[j]);
+                    }
+
+                    if(keys_values.length != 50){
                         console.log("loop stopped!");
-                        console.log("number of playlists: " + total_NumberOfPlaylists);
-                        changeButtonText("#show-all-playlists", total_NumberOfPlaylists, "Show how many playlist i have", 2000);
+                        changeButtonText("#show-all-playlists", keys_values.length, "Show how many playlist i have", 2000);
+                        console.log(total_PlaylistData);
                         break;  
                     }
                 }
             }
             catch(err){
                 console.log(err);
+            }
+        }
+
+        function tempFunction (user_id) {
+            console.log("in the middle of nowhere: " + getPlaylistLength(user_id));
+        }
+
+        async function savePlaylistBasics() {
+            try{
+
+            }
+            catch(err){
+
             }
         }
 
@@ -584,23 +634,11 @@ function addToPLaylistQue (track_id) {firebase.database().ref('public_tracks/').
         false);
     //--------------------------------------------------------------
     document.getElementById('show-all-playlists').addEventListener('click', function() {
-        getTotalNumberOfPlaylists("gameovercharlie");}, 
+        changeButtonText("show-all-playlists", getPlaylistLength("gameovercharlie"), "Show how many playlists i have", 3000);
+        saveAllTracks("gameovercharlie");
+    }, 
         false);
     }
-
-
-  /*
-	add if error 401 
-
-		updateglobalToken()
-
-		and run method again
-
-		method(same_parameter_1, same_parameter_2);
-
-		DUN!
-
-  */
 
   /*
     1: listen spotfiy
