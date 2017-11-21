@@ -73,7 +73,7 @@ function addPlaylistNameToDB (playlist_add_name, uri) {
 	});
 }
 
-function addToPLaylistQue (track_id) {firebase.database().ref('public_tracks/').push(track_id);}
+function addToPLaylistQue (track_id) {firebase.database().ref('public_tracks/').push().set({track_id: track_id});}
 
 //Global variables
 //------------------------------------
@@ -185,19 +185,21 @@ function addToPLaylistQue (track_id) {firebase.database().ref('public_tracks/').
         	});
         }
 
-        function getCurrentlyPlaying() {
-            $.ajax({
-                url: 'https://api.spotify.com/v1/me/player/currently-playing',
-                type: 'GET',
-                headers: { 'Authorization' : 'Bearer ' + globalToken},
-                success: function(data) {
-                    console.log("this is getCurrentlyPlaying() ");
-                    return data.item.id;
-                },
-                error: function(xhr, textStatus){
-                    console.log("error code: " + xhr.status);
-                }
-            });
+        async function getCurrentlyPlaying() {
+            try {
+                const ajax_getCurrentlyPlaying = await $.ajax({
+                    url: 'https://api.spotify.com/v1/me/player/currently-playing',
+                    type: 'GET',
+                    headers: { 'Authorization' : 'Bearer ' + globalToken},
+                    success: function(data) {},
+                    error: function(xhr, textStatus){console.log("error code: " + xhr.status);}
+                });
+                console.log(ajax_getCurrentlyPlaying.item.name);
+                return ajax_getCurrentlyPlaying.item.id;
+            }   
+            catch (err) {
+                console.log(err);
+            }
         }
 
         function getPublicPlaylist() {
@@ -216,10 +218,15 @@ function addToPLaylistQue (track_id) {firebase.database().ref('public_tracks/').
             });
         }
 
-        function addCurrentToPlaylist(){
-            var currentlyPlayingTrackId = getCurrentlyPlaying();
-            console.log(currentlyPlayingTrackId);
-            addToPLaylistQue(currentlyPlayingTrackId);
+        async function addCurrentToPlaylist(){
+            try {
+                const currentlyPlayingTrackId = await getCurrentlyPlaying();
+                console.log(currentlyPlayingTrackId);
+                addToPLaylistQue(currentlyPlayingTrackId);
+            }
+            catch (err){
+                console.log(err);
+            }
         }
 
         function submitToDataBase() {
@@ -342,6 +349,9 @@ function addToPLaylistQue (track_id) {firebase.database().ref('public_tracks/').
                 	console.log("flexibleButtonFunction fail: " + xhr.status);
                 }
             });
+
+            // check for playlist changes every 1 sec = 5Mb/hour + music for one hour = 140Mb/hour at 320kbps
+            // Update current track on Home screen once/second
     	}
 
         function changeButtonText(elementId, newText, oldText, sleepTime) {
@@ -461,24 +471,24 @@ function addToPLaylistQue (track_id) {firebase.database().ref('public_tracks/').
 
         async function saveAllTracks (user_id) {
             try{
-
-                const get_playlistList = await getPlaylistLength("gameovercharlie");
-
-                var total_PlaylistData = [];
-                var loop_limit = Math.ceil(get_playlistList/50);
+                const get_playlistLength = await getPlaylistLength(user_id);
+                var user_playlists = [];
+                var loop_limit = Math.ceil(get_playlistLength/50);
                 for (var i = 0; i < loop_limit; i++){
                     let request_playlistPackage = await getListOfPlaylists(user_id, 50, (i * 50), 'items');;
                     var keys_values = Object.keys(request_playlistPackage);
                     console.log("total_getSize: " + keys_values.length + " index I: " + i);
                     for (var j = 0; j < keys_values.length; j++){
-                        total_PlaylistData.push(request_playlistPackage[j]);
-                        console.log(total_PlaylistData[j]);
+                        user_playlists.push(request_playlistPackage[j]);
                     }
 
                     if(keys_values.length != 50){
                         console.log("loop stopped!");
-                        changeButtonText("#show-all-playlists", keys_values.length, "Show how many playlist i have", 2000);
-                        console.log(total_PlaylistData);
+                        changeButtonText("#show-all-playlists", get_playlistLength, "Show how many playlist i have", 2000);
+                        console.log(user_playlists);
+                        firebase.database().ref('user_track_info/' + user_id + '/').set({
+                            user_playlists
+                        });
                         break;  
                     }
                 }
@@ -488,18 +498,14 @@ function addToPLaylistQue (track_id) {firebase.database().ref('public_tracks/').
             }
         }
 
-        function tempFunction (user_id) {
-            console.log("in the middle of nowhere: " + getPlaylistLength(user_id));
-        }
+        // async function savePlaylistBasics() {
+        //     try{
+        //         const data_toSubmit = await saveAllTracks("gameovercharlie");
+        //     }
+        //     catch(err){
 
-        async function savePlaylistBasics() {
-            try{
-
-            }
-            catch(err){
-
-            }
-        }
+        //     }
+        // }
 
         function executeCreatePlaylistFunction(url, reqType, name, tempData) {
             $.ajax({
@@ -614,7 +620,6 @@ function addToPLaylistQue (track_id) {firebase.database().ref('public_tracks/').
     document.getElementById('list-size').addEventListener('click',
     	function() {
             getPublicPlaylist();
-            //console.log(getCurrentlyPlaying());
             addCurrentToPlaylist();}, 
             false);
     //--------------------------------------------------------
@@ -675,7 +680,7 @@ function addToPLaylistQue (track_id) {firebase.database().ref('public_tracks/').
                         track_id : "some_id",
                         currently_playing: "true"
                         }
-        - most important is to make sure only one track have "currently playing" value equal "true",  to avoid minor issues;
+        - most important is to make sure only one track have "currently playing" value equal "true" (stored in DATA BASE),  to avoid minor issues;
     Rewrite "write track info thingy" 
         - Pass an array to "write track info thingy" instead of long strong of alone variables, idealy! use JSON format before sending to "write thingy to data base"
           just to make it look more clean when submiting. 
@@ -688,7 +693,7 @@ function addToPLaylistQue (track_id) {firebase.database().ref('public_tracks/').
       more track you will be forced to request more "sort like you would do on a shoping website",
       go to "page 3" etc. no the best solution but it will work nicely.
     
-    DONE: 
+    DONE DONE DONE DONE DONE: 
 
     //Async iS love, async is life!//
 
